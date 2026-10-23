@@ -7,6 +7,7 @@ import {
   type AppInfoResponse,
   INITIAL_MODULES
 } from '@loanlens/shared';
+import { loanAdvisorRouter } from './modules/loanAdvisor/loanAdvisor.routes.js';
 
 export const app = express();
 
@@ -54,6 +55,9 @@ app.get('/api/health', (_req, res) => {
 
   res.status(200).json(health);
 });
+
+// Loan Advisor Module Routes
+app.use('/api/loan-advisor', loanAdvisorRouter);
 
 // 404 Handler
 app.use((req, _res, next) => {

@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Activity,
-  Calculator,
   FileSearch,
   ShieldAlert,
   Server,
@@ -13,6 +12,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import type { HealthResponse, AppInfoResponse } from '@loanlens/shared';
+import { LoanAdvisor } from './components/LoanAdvisor.tsx';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -77,7 +77,7 @@ export default function App() {
                   LoanLens AI
                 </span>
                 <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                  Phase 1
+                  Phase 2
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">Intelligent Lending Platform</p>
@@ -201,63 +201,24 @@ export default function App() {
           </div>
         </div>
 
-        {/* Core Modules Section */}
-        <div className="space-y-4">
+        {/* Module 1: Functional Loan Advisor */}
+        <section id="loan-advisor-section" className="space-y-4">
+          <LoanAdvisor />
+        </section>
+
+        {/* Next Modules: Labelled Placeholders */}
+        <section className="space-y-4">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div>
-              <h2 className="text-xl font-bold tracking-tight text-white">System Modules</h2>
+              <h3 className="text-lg font-bold tracking-tight text-white">Upcoming System Modules</h3>
               <p className="text-xs text-slate-400">
-                Three core architectural modules designed for LoanLens AI. Placeholders established for Phase 2 implementation.
+                Scheduled for subsequent phases. Strictly non-functional placeholders in Phase 2.
               </p>
             </div>
-            <span className="text-xs text-slate-500 font-mono">3 Modules Defined</span>
+            <span className="text-xs text-slate-500 font-mono">2 Placeholders</span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Module 1: Loan Advisor */}
-            <div className="group rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/40 border border-slate-800 p-6 flex flex-col justify-between hover:border-slate-700 transition duration-200 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 w-28 h-28 bg-indigo-500/5 rounded-full blur-2xl pointer-events-none"></div>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                    <Calculator className="w-6 h-6" />
-                  </div>
-                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    Phase 2 Placeholder
-                  </span>
-                </div>
-
-                <div>
-                  <h3 className="text-lg font-bold text-white group-hover:text-indigo-300 transition">
-                    1. Loan Advisor
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                    Deterministic financial calculation engine. Computes EMI, Debt-to-Income (DTI),
-                    Loan-to-Value (LTV), and full amortization schedules without speculative AI rounding.
-                  </p>
-                </div>
-
-                <div className="bg-slate-950/60 rounded-lg p-3 border border-slate-800/80 space-y-1.5 text-xs text-slate-400">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Scheduled:</span>
-                    <span className="text-slate-300 font-mono">Phase 2</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Engine Type:</span>
-                    <span className="text-slate-300">Deterministic Math</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-6 mt-4 border-t border-slate-800/60">
-                <div className="w-full py-2.5 px-3 rounded-lg bg-slate-800/40 border border-slate-700/50 text-xs text-slate-400 flex items-center justify-center gap-2 cursor-not-allowed select-none">
-                  <span>Placeholder Ready for Phase 2</span>
-                  <ArrowRight className="w-3.5 h-3.5 opacity-40" />
-                </div>
-              </div>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Module 2: Policy Assistant */}
             <div className="group rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/40 border border-slate-800 p-6 flex flex-col justify-between hover:border-slate-700 transition duration-200 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 w-28 h-28 bg-sky-500/5 rounded-full blur-2xl pointer-events-none"></div>
@@ -273,9 +234,9 @@ export default function App() {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-bold text-white group-hover:text-sky-300 transition">
+                  <h4 className="text-base font-bold text-white group-hover:text-sky-300 transition">
                     2. Policy Assistant
-                  </h3>
+                  </h4>
                   <p className="text-xs text-slate-400 mt-2 leading-relaxed">
                     Semantic vector search over credit underwriting guidelines and institutional lending policies
                     using PostgreSQL pgvector and local sentence embeddings.
@@ -285,7 +246,7 @@ export default function App() {
                 <div className="bg-slate-950/60 rounded-lg p-3 border border-slate-800/80 space-y-1.5 text-xs text-slate-400">
                   <div className="flex justify-between">
                     <span className="text-slate-500">Scheduled:</span>
-                    <span className="text-slate-300 font-mono">Phase 2</span>
+                    <span className="text-slate-300 font-mono">Phase 2 Next</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">Retrieval:</span>
@@ -296,7 +257,7 @@ export default function App() {
 
               <div className="pt-6 mt-4 border-t border-slate-800/60">
                 <div className="w-full py-2.5 px-3 rounded-lg bg-slate-800/40 border border-slate-700/50 text-xs text-slate-400 flex items-center justify-center gap-2 cursor-not-allowed select-none">
-                  <span>Placeholder Ready for Phase 2</span>
+                  <span>Placeholder Ready for Phase 2 Next</span>
                   <ArrowRight className="w-3.5 h-3.5 opacity-40" />
                 </div>
               </div>
@@ -317,9 +278,9 @@ export default function App() {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition">
+                  <h4 className="text-base font-bold text-white group-hover:text-purple-300 transition">
                     3. Agentic Pre-Screening
-                  </h3>
+                  </h4>
                   <p className="text-xs text-slate-400 mt-2 leading-relaxed">
                     AI-assisted loan underwriting recommendation engine with human-in-the-loop decisioning.
                     Advisory recommendations only; human underwriter authority strictly enforced.
@@ -346,7 +307,7 @@ export default function App() {
               </div>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Live Raw API Response Preview Widget */}
         <div className="rounded-2xl bg-slate-900/40 border border-slate-800/80 p-6 space-y-4">

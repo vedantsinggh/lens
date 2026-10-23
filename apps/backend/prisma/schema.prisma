@@ -1,0 +1,43 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+model Borrower {
+  id               String            @id @default(uuid())
+  fullName         String            @map("full_name")
+  email            String            @unique
+  annualIncome     Float             @map("annual_income")
+  monthlyDebt      Float             @map("monthly_debt")
+  creditScore      Int               @map("credit_score")
+  employmentStatus String            @map("employment_status")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  calculations     LoanCalculation[]
+
+  @@map("borrowers")
+}
+
+model LoanCalculation {
+  id             String    @id @default(uuid())
+  borrowerId     String?   @map("borrower_id")
+  borrower       Borrower? @relation(fields: [borrowerId], references: [id], onDelete: SetNull)
+  principal      Float
+  annualRate     Float     @map("annual_rate")
+  termMonths     Int       @map("term_months")
+  monthlyEMI     Float     @map("monthly_emi")
+  totalRepayment Float     @map("total_repayment")
+  totalInterest  Float     @map("total_interest")
+  dtiRatio       Float?    @map("dti_ratio")
+  ltvRatio       Float?    @map("ltv_ratio")
+  scenarioName   String?   @map("scenario_name")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  @@map("loan_calculations")
+}
