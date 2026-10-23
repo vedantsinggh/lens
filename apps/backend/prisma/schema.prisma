@@ -60,3 +60,33 @@ model CreditPolicy {
   @@index([status, audience])
   @@map("credit_policies")
 }
+
+model PreScreeningRecord {
+  id             String   @id @default(uuid())
+  applicationId  String   @map("application_id")
+  applicantName  String   @map("applicant_name")
+  category       String   // 'READY_FOR_REVIEW' | 'NEEDS_INFORMATION' | 'MANUAL_REVIEW'
+  workflowStatus String   @default("pending") @map("workflow_status") // 'pending' | 'reviewed' | 'needs_more_info'
+  principal      Float
+  annualRate     Float    @map("annual_rate")
+  termMonths     Int      @map("term_months")
+  grossIncome    Float    @map("gross_income")
+  monthlyDebt    Float    @map("monthly_debt")
+  monthlyEMI     Float    @map("monthly_emi")
+  totalRepayment Float    @map("total_repayment")
+  totalInterest  Float    @map("total_interest")
+  dtiPercentage  Float    @map("dti_percentage")
+  ltvPercentage  Float?   @map("ltv_percentage")
+  summary        String   @db.Text
+  findings       Json
+  citations      Json
+  missingDocs    String[] @map("missing_docs")
+  reviewerNotes  String?  @map("reviewer_notes") @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  @@index([applicationId])
+  @@index([category])
+  @@index([workflowStatus])
+  @@map("pre_screening_records")
+}

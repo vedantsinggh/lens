@@ -9,6 +9,7 @@ import {
 } from '@loanlens/shared';
 import { loanAdvisorRouter } from './modules/loanAdvisor/loanAdvisor.routes.js';
 import { policyAssistantRouter } from './modules/policyAssistant/policyAssistant.routes.js';
+import { prescreeningRouter } from './modules/prescreening/prescreening.routes.js';
 
 export const app = express();
 
@@ -62,6 +63,9 @@ app.use('/api/loan-advisor', loanAdvisorRouter);
 
 // Policy Assistant Module Routes
 app.use('/api/policy-assistant', policyAssistantRouter);
+
+// Agentic Pre-Screening Module Routes
+app.use('/api/pre-screening', prescreeningRouter);
 
 // 404 Handler
 app.use((req, _res, next) => {

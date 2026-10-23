@@ -1,18 +1,17 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   Activity,
-  ShieldAlert,
   Server,
   Database,
   CheckCircle2,
   AlertTriangle,
   RefreshCw,
-  Layers,
-  ArrowRight
+  Layers
 } from 'lucide-react';
 import type { HealthResponse, AppInfoResponse } from '@loanlens/shared';
 import { LoanAdvisor } from './components/LoanAdvisor.tsx';
 import { PolicyAssistant } from './components/PolicyAssistant.tsx';
+import { PreScreening } from './components/PreScreening.tsx';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -76,8 +75,8 @@ export default function App() {
                 <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
                   LoanLens AI
                 </span>
-                <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                  Phase 3
+                <span className="text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                  Phase 4
                 </span>
               </div>
               <p className="text-xs text-slate-400 hidden sm:block">Intelligent Lending Platform</p>
@@ -211,64 +210,9 @@ export default function App() {
           <PolicyAssistant />
         </section>
 
-        {/* Next Modules: Labelled Placeholders */}
-        <section className="space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <div>
-              <h3 className="text-lg font-bold tracking-tight text-white">Upcoming System Modules</h3>
-              <p className="text-xs text-slate-400">
-                Scheduled for subsequent phases. Strictly non-functional placeholder in Phase 3.
-              </p>
-            </div>
-            <span className="text-xs text-slate-500 font-mono">1 Placeholder</span>
-          </div>
-
-          <div className="grid grid-cols-1 gap-6">
-            {/* Module 3: Agentic Pre-Screening Placeholder */}
-            <div className="group rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/40 border border-slate-800 p-6 flex flex-col justify-between hover:border-slate-700 transition duration-200 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 transform translate-x-4 -translate-y-4 w-28 h-28 bg-purple-500/5 rounded-full blur-2xl pointer-events-none"></div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
-                    <ShieldAlert className="w-6 h-6" />
-                  </div>
-                  <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
-                    Phase 4 Placeholder
-                  </span>
-                </div>
-
-                <div>
-                  <h4 className="text-base font-bold text-white group-hover:text-purple-300 transition">
-                    3. Agentic Pre-Screening
-                  </h4>
-                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-                    AI-assisted loan underwriting recommendation engine with human-in-the-loop decisioning.
-                    Synthesizes financial calculations and grounded policy guidelines into structured advisory recommendations.
-                    Advisory recommendations only; human underwriter authority strictly enforced.
-                  </p>
-                </div>
-
-                <div className="bg-slate-950/60 rounded-lg p-3 border border-slate-800/80 space-y-1.5 text-xs text-slate-400">
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Scheduled:</span>
-                    <span className="text-slate-300 font-mono">Phase 4 Next</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-500">Governance:</span>
-                    <span className="text-slate-300">Human Decision Bound</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-6 mt-4 border-t border-slate-800/60">
-                <div className="w-full py-2.5 px-3 rounded-lg bg-slate-800/40 border border-slate-700/50 text-xs text-slate-400 flex items-center justify-center gap-2 cursor-not-allowed select-none">
-                  <span>Placeholder Ready for Phase 4</span>
-                  <ArrowRight className="w-3.5 h-3.5 opacity-40" />
-                </div>
-              </div>
-            </div>
-          </div>
+        {/* Module 3: Functional Agentic Pre-Screening */}
+        <section id="agentic-prescreening-section" className="space-y-4">
+          <PreScreening />
         </section>
 
         {/* Live Raw API Response Preview Widget */}

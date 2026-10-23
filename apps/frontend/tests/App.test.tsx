@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import App from '../src/App.tsx';
 
-describe('Frontend App Dashboard Shell - Phase 3', () => {
+describe('Frontend App Dashboard Shell - Phase 4', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
@@ -84,6 +84,75 @@ describe('Frontend App Dashboard Shell - Phase 3', () => {
             })
           });
         }
+        if (url.includes('/api/pre-screening/evaluate')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              recordId: 'audit-rec-1234',
+              applicationId: 'APP-2026-0819',
+              category: 'READY_FOR_REVIEW',
+              summary: 'Application APP-2026-0819 satisfies all primary automated underwriting checks.',
+              calculation: {
+                monthlyEMI: 2155.01,
+                totalRepayment: 775803.6,
+                totalInterest: 425803.6,
+                dti: {
+                  dtiPercentage: 23.24,
+                  riskTier: 'low_risk',
+                  description: 'Prime DTI (<= 36%): Standard qualifying capacity.'
+                },
+                ltv: {
+                  ltvPercentage: 70.0,
+                  tier: 'standard',
+                  description: 'Prime LTV (<= 80%): Standard equity position, PMI waived.'
+                }
+              },
+              documentAudit: {
+                allRequiredPresent: true,
+                missingRequired: [],
+                receivedCount: 5,
+                totalRequiredCount: 5
+              },
+              findings: [
+                {
+                  code: 'DOCS_COMPLETE',
+                  severity: 'info',
+                  title: 'Documentation Complete',
+                  message: 'All 5 mandatory verification documents received.',
+                  relatedPolicyId: 'POL-DOC-001',
+                  policySection: 'Section 5.1: Core Mandatory Application Documentation',
+                  policyVersion: '2.1'
+                }
+              ],
+              citations: [
+                {
+                  policyId: 'POL-DOC-001',
+                  title: 'Mandatory Borrower Verification Documentation',
+                  section: 'Section 5.1: Core Mandatory Application Documentation',
+                  version: '2.1',
+                  status: 'active',
+                  effectiveDate: '2025-01-15',
+                  audience: 'all',
+                  relevanceScore: 0.95,
+                  excerpt: 'All residential loan applications require core verification documents.'
+                }
+              ],
+              persistenceStatus: 'persisted',
+              workflowStatus: 'pending',
+              disclaimer: 'Preliminary Screening Aid Only'
+            })
+          });
+        }
+        if (url.includes('/api/pre-screening/presets')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              presets: []
+            })
+          });
+        }
         if (url.includes('/api')) {
           return Promise.resolve({
             ok: true,
@@ -96,15 +165,15 @@ describe('Frontend App Dashboard Shell - Phase 3', () => {
             })
           });
         }
-        return Promise.reject(new Error('Unknown URL'));
+        return Promise.reject(new Error(`Unknown URL: ${url}`));
       })
     );
   });
 
-  it('renders LoanLens AI branding and phase 3 badge', async () => {
+  it('renders LoanLens AI branding and Phase 4 badge', async () => {
     render(<App />);
     expect(await screen.findByText('LoanLens AI')).toBeInTheDocument();
-    expect(screen.getByText('Phase 3')).toBeInTheDocument();
+    expect(screen.getByText('Phase 4')).toBeInTheDocument();
   });
 
   it('renders Loan Advisor as a functional module with calculation inputs and results', async () => {
@@ -132,12 +201,19 @@ describe('Frontend App Dashboard Shell - Phase 3', () => {
     expect(screen.getByText('Section 4.1: Qualifying DTI Thresholds')).toBeInTheDocument();
   });
 
-  it('renders Agentic Pre-Screening as a clearly labelled placeholder for subsequent phase', async () => {
+  it('renders Agentic Pre-Screening as an active functional module with workflow controls', async () => {
     render(<App />);
-    expect(screen.getByText('3. Agentic Pre-Screening')).toBeInTheDocument();
-    expect(screen.getByText('Phase 4 Placeholder')).toBeInTheDocument();
+    expect(await screen.findByText('Agentic Pre-Screening')).toBeInTheDocument();
+    expect(screen.getByText('Phase 4 Active')).toBeInTheDocument();
+    expect(screen.getByText('Human Decision Bound')).toBeInTheDocument();
 
-    const placeholders = screen.getAllByText(/Placeholder Ready for Phase 4/i);
-    expect(placeholders.length).toBe(1);
+    // Verify synthetic presets render
+    expect(screen.getByText(/Case 1: Prime Salaried Conforming/i)).toBeInTheDocument();
+    expect(screen.getByText(/Case 2: Self-Employed with Missing Documents/i)).toBeInTheDocument();
+
+    // Verify preliminary classification and workflow controls render
+    expect(await screen.findByText('READY FOR UNDERWRITER REVIEW')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Mark as Reviewed/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Request More Information/i })).toBeInTheDocument();
   });
 });

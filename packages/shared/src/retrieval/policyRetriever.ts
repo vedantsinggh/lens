@@ -152,6 +152,10 @@ export function retrieveEligiblePolicies(
       const stem = stemTerm(term);
       let termMatched = false;
 
+      if (policy.policyId.toLowerCase().includes(term)) {
+        rawScore += 10.0;
+        termMatched = true;
+      }
       if (matchesToken(titleLower, term, stem)) {
         rawScore += 3.5;
         termMatched = true;

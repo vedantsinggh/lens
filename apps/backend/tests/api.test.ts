@@ -331,5 +331,203 @@ describe('Backend API Endpoints', () => {
       expect(res.body.sampleQuestions.length).toBeGreaterThanOrEqual(4);
     });
   });
+
+  describe('Agentic Pre-Screening API', () => {
+    it('POST /api/pre-screening/evaluate evaluates Case 1 as READY_FOR_REVIEW and persists record', async () => {
+      const payload = {
+        applicationId: 'APP-TEST-001',
+        applicantName: 'Alice Walker (Synthetic Test)',
+        principal: 300000,
+        annualRate: 6.0,
+        termMonths: 360,
+        grossMonthlyIncome: 12000,
+        existingMonthlyDebt: 600,
+        assetValue: 450000,
+        employmentType: 'salaried',
+        employmentMonths: 48,
+        creditScore: 750,
+        documents: [
+          { id: 'doc-gov-id', name: 'Government Photo ID', received: true, required: true, description: 'ID' },
+          { id: 'doc-paystubs', name: 'Paystubs (30 Days)', received: true, required: true, description: 'Paystubs' },
+          { id: 'doc-tax-returns', name: 'Tax Filings', received: true, required: true, description: 'Taxes' },
+          { id: 'doc-bank-statements', name: 'Bank Statements', received: true, required: true, description: 'Bank' },
+          { id: 'doc-credit-disclosure', name: 'Credit Disclosure', received: true, required: true, description: 'Consent' }
+        ]
+      };
+
+      const res = await request(app)
+        .post('/api/pre-screening/evaluate')
+        .send(payload);
+
+      expect(res.status).toBe(200);
+      expect(res.body.category).toBe('READY_FOR_REVIEW');
+      expect(res.body.workflowStatus).toBe('pending');
+      expect(res.body.documentAudit.allRequiredPresent).toBe(true);
+      expect(res.body.calculation.monthlyEMI).toBe(1798.65);
+      expect(res.body.calculation.dti.dtiPercentage).toBe(19.99);
+      expect(res.body.calculation.ltv.ltvPercentage).toBe(66.67);
+      expect(res.body.findings.length).toBeGreaterThan(0);
+      expect(res.body.citations.length).toBeGreaterThan(0);
+      expect(['persisted', 'failed']).toContain(res.body.persistenceStatus);
+      if (res.body.persistenceStatus === 'persisted') {
+        expect(res.body.recordId).toBeDefined();
+      }
+    });
+
+    it('POST /api/pre-screening/evaluate evaluates missing documents application as NEEDS_INFORMATION', async () => {
+      const payload = {
+        applicationId: 'APP-TEST-002',
+        applicantName: 'Bob Vance (Missing Docs Test)',
+        principal: 380000,
+        annualRate: 6.5,
+        termMonths: 360,
+        grossMonthlyIncome: 10000,
+        existingMonthlyDebt: 500,
+        employmentType: 'salaried',
+        employmentMonths: 36,
+        documents: [
+          { id: 'doc-gov-id', name: 'Government Photo ID', received: true, required: true, description: 'ID' },
+          { id: 'doc-paystubs', name: 'Paystubs', received: false, required: true, description: 'Paystubs' },
+          { id: 'doc-tax-returns', name: 'Tax Filings', received: false, required: true, description: 'Taxes' }
+        ]
+      };
+
+      const res = await request(app)
+        .post('/api/pre-screening/evaluate')
+        .send(payload);
+
+      expect(res.status).toBe(200);
+      expect(res.body.category).toBe('NEEDS_INFORMATION');
+      expect(res.body.documentAudit.allRequiredPresent).toBe(false);
+      expect(res.body.documentAudit.missingRequired).toContain('Paystubs');
+      expect(res.body.findings.some((f: { code: string }) => f.code === 'DOCS_MISSING')).toBe(true);
+      expect(res.body.citations.some((c: { policyId: string }) => c.policyId === 'POL-DOC-002')).toBe(true);
+    });
+
+    it('POST /api/pre-screening/evaluate evaluates manual review trigger application as MANUAL_REVIEW', async () => {
+      const payload = {
+        applicationId: 'APP-TEST-003',
+        applicantName: 'Charlie Low (Score Escalation Test)',
+        principal: 400000,
+        annualRate: 7.0,
+        termMonths: 360,
+        grossMonthlyIncome: 8000,
+        existingMonthlyDebt: 600,
+        employmentType: 'salaried',
+        employmentMonths: 24,
+        creditScore: 630, // Trigger: < 660
+        documents: [
+          { id: 'doc-gov-id', name: 'Government Photo ID', received: true, required: true, description: 'ID' }
+        ]
+      };
+
+      const res = await request(app)
+        .post('/api/pre-screening/evaluate')
+        .send(payload);
+
+      expect(res.status).toBe(200);
+      expect(res.body.category).toBe('MANUAL_REVIEW');
+    });
+
+    it('POST /api/pre-screening/evaluate handles database persistence failure gracefully without failing evaluation', async () => {
+      const originalCreate = prisma.preScreeningRecord.create;
+      (prisma.preScreeningRecord as any).create = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Simulated database write timeout'));
+
+      const payload = {
+        applicationId: 'APP-TEST-004',
+        applicantName: 'Diana Prince (DB Resilience Test)',
+        principal: 250000,
+        annualRate: 5.5,
+        termMonths: 360,
+        grossMonthlyIncome: 9500,
+        existingMonthlyDebt: 300,
+        employmentType: 'salaried',
+        employmentMonths: 30,
+        documents: [
+          { id: 'doc-gov-id', name: 'Government Photo ID', received: true, required: true, description: 'ID' }
+        ]
+      };
+
+      try {
+        const res = await request(app)
+          .post('/api/pre-screening/evaluate')
+          .send(payload);
+
+        // Must succeed with 200 and explicitly report persistence failure
+        expect(res.status).toBe(200);
+        expect(res.body.persistenceStatus).toBe('failed');
+        expect(res.body.recordId).toBeUndefined();
+      } finally {
+        prisma.preScreeningRecord.create = originalCreate;
+      }
+    });
+
+    it('POST /api/pre-screening/evaluate rejects invalid inputs with 400 validation error', async () => {
+      const invalidPayload = {
+        applicantName: '', // empty name
+        principal: -1000
+      };
+
+      const res = await request(app)
+        .post('/api/pre-screening/evaluate')
+        .send(invalidPayload);
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('Validation failed');
+    });
+
+    it('GET /api/pre-screening/presets returns synthetic demo applications', async () => {
+      const res = await request(app).get('/api/pre-screening/presets');
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body.presets)).toBe(true);
+      expect(res.body.presets.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('PATCH /api/pre-screening/:id/status updates workflow review status or returns 404', async () => {
+      // Create a test record first
+      const record = await prisma.preScreeningRecord.create({
+        data: {
+          applicationId: 'APP-PATCH-TEST',
+          applicantName: 'Test Reviewer Case',
+          category: 'READY_FOR_REVIEW',
+          workflowStatus: 'pending',
+          principal: 200000,
+          annualRate: 5.0,
+          termMonths: 240,
+          grossIncome: 8000,
+          monthlyDebt: 200,
+          monthlyEMI: 1319.91,
+          totalRepayment: 316778.4,
+          totalInterest: 116778.4,
+          dtiPercentage: 18.99,
+          summary: 'Test summary',
+          findings: [],
+          citations: [],
+          missingDocs: []
+        }
+      });
+
+      const updateRes = await request(app)
+        .patch(`/api/pre-screening/${record.id}/status`)
+        .send({
+          workflowStatus: 'reviewed',
+          reviewerNotes: 'Verified clean credit and assets. Ready for underwriting committee.'
+        });
+
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.workflowStatus).toBe('reviewed');
+      expect(updateRes.body.reviewerNotes).toContain('Ready for underwriting committee');
+
+      // Test 404 for non-existent record
+      const notFoundRes = await request(app)
+        .patch('/api/pre-screening/00000000-0000-0000-0000-000000000000/status')
+        .send({ workflowStatus: 'needs_more_info' });
+
+      expect(notFoundRes.status).toBe(404);
+    });
+  });
 });
 

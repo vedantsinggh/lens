@@ -8,6 +8,11 @@ export * from './types/policy.js';
 export * from './data/syntheticPolicies.js';
 export * from './retrieval/policyRetriever.js';
 
+// Re-export all agentic pre-screening schemas, data, and orchestration functions
+export * from './types/prescreening.js';
+export * from './data/syntheticApplications.js';
+export * from './prescreening/engine.js';
+
 /**
  * Health check response schema and type
  */
@@ -73,9 +78,9 @@ export const INITIAL_MODULES = [
   {
     id: MODULE_IDS.AGENTIC_PRESCREENING,
     title: 'Agentic Pre-Screening',
-    description: 'AI-assisted loan underwriting recommendation engine with human-in-the-loop audit governance.',
-    status: 'placeholder' as const,
-    phase: 3
+    description: 'AI-assisted preliminary loan underwriting pre-screening engine with human-in-the-loop decision support.',
+    status: 'active' as const,
+    phase: 4
   }
 ];
 
