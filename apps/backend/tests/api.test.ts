@@ -259,6 +259,53 @@ describe('Backend API Endpoints', () => {
       expect(res.body.answer).toContain('no active, applicable material');
     });
 
+    it('POST /api/policy-assistant/query returns no-evidence for unsupported crypto staking collateral inquiry', async () => {
+      const res = await request(app)
+        .post('/api/policy-assistant/query')
+        .send({
+          query: 'What is the policy for crypto staking collateral?',
+          audience: 'all'
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.hasSufficientEvidence).toBe(false);
+      expect(res.body.citations.length).toBe(0);
+      expect(res.body.answer).toContain('no active, applicable material');
+    });
+
+    it('POST /api/policy-assistant/query prioritizes employment and document policies for self-employed borrower documents inquiry', async () => {
+      const res = await request(app)
+        .post('/api/policy-assistant/query')
+        .send({
+          query: 'What documents must a self-employed borrower provide to verify income?',
+          audience: 'all'
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.hasSufficientEvidence).toBe(true);
+      const policyIds = (res.body.citations as Array<{ policyId: string }>).map((c) => c.policyId);
+
+      expect(policyIds).toContain('POL-EMP-001');
+      expect(policyIds).toContain('POL-DOC-001');
+      expect(policyIds).not.toContain('POL-DTI-001');
+    });
+
+    it('POST /api/policy-assistant/query removes tangential LTV citations when querying specifically about maximum DTI', async () => {
+      const res = await request(app)
+        .post('/api/policy-assistant/query')
+        .send({
+          query: 'What is the maximum DTI for a conventional prime loan?',
+          audience: 'all'
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.hasSufficientEvidence).toBe(true);
+      const policyIds = (res.body.citations as Array<{ policyId: string }>).map((c) => c.policyId);
+
+      expect(policyIds).toContain('POL-DTI-001');
+      expect(policyIds).not.toContain('POL-LTV-001');
+    });
+
     it('POST /api/policy-assistant/query rejects empty or single-character query with 400 validation error', async () => {
       const res = await request(app)
         .post('/api/policy-assistant/query')

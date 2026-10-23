@@ -87,6 +87,41 @@ describe('Policy Assistant Retrieval & Grounding Engine', () => {
       const top2 = retrieveEligiblePolicies(SYNTHETIC_POLICY_CORPUS, 'loan application requirements', { topK: 2 });
       expect(top2.length).toBeLessThanOrEqual(2);
     });
+
+    it('prioritizes employment and documentation policies and removes tangential DTI for self-employed queries', () => {
+      const citations = retrieveEligiblePolicies(
+        SYNTHETIC_POLICY_CORPUS,
+        'What documents must a self-employed borrower provide to verify income?'
+      );
+      const policyIds = citations.map((c) => c.policyId);
+
+      expect(policyIds).toContain('POL-EMP-001');
+      expect(policyIds).toContain('POL-DOC-001');
+      expect(policyIds).not.toContain('POL-DTI-001');
+    });
+
+    it('removes tangential LTV citations when querying specifically about maximum DTI', () => {
+      const citations = retrieveEligiblePolicies(
+        SYNTHETIC_POLICY_CORPUS,
+        'What is the maximum DTI for a conventional prime loan?'
+      );
+      const policyIds = citations.map((c) => c.policyId);
+
+      expect(policyIds).toContain('POL-DTI-001');
+      expect(policyIds).not.toContain('POL-LTV-001');
+    });
+
+    it('returns empty citations for unsupported topics like crypto staking collateral', () => {
+      const citations = retrieveEligiblePolicies(
+        SYNTHETIC_POLICY_CORPUS,
+        'What is the policy for crypto staking collateral?'
+      );
+      expect(citations).toEqual([]);
+
+      const response = generateGroundedAnswer('What is the policy for crypto staking collateral?', citations, 'all');
+      expect(response.hasSufficientEvidence).toBe(false);
+      expect(response.citations).toEqual([]);
+    });
   });
 
   describe('generateGroundedAnswer', () => {
