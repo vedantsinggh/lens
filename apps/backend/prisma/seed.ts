@@ -1,13 +1,15 @@
 import { PrismaClient } from '@prisma/client';
+import { SYNTHETIC_POLICY_CORPUS } from '@loanlens/shared';
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('[Seed] Seeding synthetic borrower profiles and demo calculations...');
+  console.log('[Seed] Seeding synthetic borrower profiles, calculations, and credit policies...');
 
   // Clean existing records in demo database
   await prisma.loanCalculation.deleteMany();
   await prisma.borrower.deleteMany();
+  await prisma.creditPolicy.deleteMany();
 
   // 1. Prime Conforming Borrower (Jane Doe - High Income, Prime Credit)
   const primeBorrower = await prisma.borrower.create({
@@ -45,7 +47,7 @@ async function main() {
     }
   });
 
-  // Insert corresponding initial calculated scenarios
+  // 4. Initial Calculated Scenarios
   await prisma.loanCalculation.createMany({
     data: [
       {
@@ -54,8 +56,8 @@ async function main() {
         annualRate: 6.5,
         termMonths: 360,
         monthlyEMI: 2528.27,
-        totalRepayment: 910177.2,
-        totalInterest: 510177.2,
+        totalRepayment: 910179.81,
+        totalInterest: 510179.81,
         dtiRatio: 25.43,
         ltvRatio: 80.0,
         scenarioName: 'Prime Conforming 30Y Fixed'
@@ -87,10 +89,31 @@ async function main() {
     ]
   });
 
+  // 5. Seed Synthetic Credit Policies (10 sections)
+  for (const policy of SYNTHETIC_POLICY_CORPUS) {
+    await prisma.creditPolicy.create({
+      data: {
+        policyId: policy.policyId,
+        title: policy.title,
+        section: policy.section,
+        category: policy.category,
+        audience: policy.audience,
+        effectiveDate: new Date(policy.effectiveDate),
+        version: policy.version,
+        status: policy.status,
+        content: policy.content,
+        keywords: policy.keywords
+      }
+    });
+  }
+
   const borrowerCount = await prisma.borrower.count();
   const calculationCount = await prisma.loanCalculation.count();
+  const policyCount = await prisma.creditPolicy.count();
 
-  console.log(`[Seed] Successfully seeded ${borrowerCount} synthetic borrowers and ${calculationCount} initial calculations.`);
+  console.log(
+    `[Seed] Successfully seeded ${borrowerCount} synthetic borrowers, ${calculationCount} initial calculations, and ${policyCount} credit policies.`
+  );
 }
 
 main()

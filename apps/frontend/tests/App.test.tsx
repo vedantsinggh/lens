@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import App from '../src/App.tsx';
 
-describe('Frontend App Dashboard Shell - Phase 2', () => {
+describe('Frontend App Dashboard Shell - Phase 3', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
@@ -56,6 +56,34 @@ describe('Frontend App Dashboard Shell - Phase 2', () => {
             })
           });
         }
+        if (url.includes('/api/policy-assistant/query')) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              query: 'What is the maximum allowable DTI ratio?',
+              audience: 'all',
+              hasSufficientEvidence: true,
+              answer: 'Standard maximum DTI is 43.0% [POL-DTI-001 v2.1 - Section 4.1: Qualifying DTI Thresholds].',
+              citations: [
+                {
+                  policyId: 'POL-DTI-001',
+                  version: 'v2.1',
+                  title: 'Debt-to-Income (DTI) Underwriting Limits',
+                  section: 'Section 4.1: Qualifying DTI Thresholds',
+                  audience: 'all',
+                  category: 'eligibility',
+                  effectiveDate: '2025-01-15',
+                  relevanceScore: 0.88,
+                  matchedExcerpt: 'Standard maximum allowable DTI for conventional conforming prime residential loans is 43.0%.',
+                  fullContent: 'Standard maximum allowable DTI for conventional conforming prime residential loans is 43.0%.'
+                }
+              ],
+              retrievalLatencyMs: 4,
+              disclaimer: 'Synthetic Demonstration Material'
+            })
+          });
+        }
         if (url.includes('/api')) {
           return Promise.resolve({
             ok: true,
@@ -73,10 +101,10 @@ describe('Frontend App Dashboard Shell - Phase 2', () => {
     );
   });
 
-  it('renders LoanLens AI branding and phase 2 badge', async () => {
+  it('renders LoanLens AI branding and phase 3 badge', async () => {
     render(<App />);
     expect(await screen.findByText('LoanLens AI')).toBeInTheDocument();
-    expect(screen.getByText('Phase 2')).toBeInTheDocument();
+    expect(screen.getByText('Phase 3')).toBeInTheDocument();
   });
 
   it('renders Loan Advisor as a functional module with calculation inputs and results', async () => {
@@ -91,12 +119,25 @@ describe('Frontend App Dashboard Shell - Phase 2', () => {
     expect(await screen.findByText('$2,528.27')).toBeInTheDocument();
   });
 
-  it('renders Policy Assistant and Agentic Pre-Screening as clearly labelled placeholders', async () => {
+  it('renders Policy Assistant as an active module with search input, citations, and disclaimer', async () => {
     render(<App />);
-    expect(await screen.findByText('2. Policy Assistant')).toBeInTheDocument();
-    expect(screen.getByText('3. Agentic Pre-Screening')).toBeInTheDocument();
+    expect(await screen.findByText('2. Grounded Policy Assistant')).toBeInTheDocument();
+    expect(screen.getByText('Phase 3 Active')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/Ask a question about DTI/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Ask Assistant/i })).toBeInTheDocument();
 
-    const placeholders = screen.getAllByText(/Placeholder Ready/i);
-    expect(placeholders.length).toBe(2);
+    // Verify rendered grounded answer and citation
+    expect(await screen.findByText(/Grounded Policy Response/i)).toBeInTheDocument();
+    expect(screen.getByText('POL-DTI-001')).toBeInTheDocument();
+    expect(screen.getByText('Section 4.1: Qualifying DTI Thresholds')).toBeInTheDocument();
+  });
+
+  it('renders Agentic Pre-Screening as a clearly labelled placeholder for subsequent phase', async () => {
+    render(<App />);
+    expect(screen.getByText('3. Agentic Pre-Screening')).toBeInTheDocument();
+    expect(screen.getByText('Phase 4 Placeholder')).toBeInTheDocument();
+
+    const placeholders = screen.getAllByText(/Placeholder Ready for Phase 4/i);
+    expect(placeholders.length).toBe(1);
   });
 });

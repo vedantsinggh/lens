@@ -41,3 +41,22 @@ model LoanCalculation {
 
   @@map("loan_calculations")
 }
+
+model CreditPolicy {
+  id            String   @id @default(uuid())
+  policyId      String   @unique @map("policy_id")
+  title         String
+  section       String
+  category      String
+  audience      String   // 'borrower' | 'underwriter' | 'all'
+  effectiveDate DateTime @map("effective_date")
+  version       String
+  status        String   // 'current' | 'superseded' | 'draft'
+  content       String   @db.Text
+  keywords      String[]
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@index([status, audience])
+  @@map("credit_policies")
+}

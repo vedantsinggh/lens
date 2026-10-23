@@ -3,6 +3,11 @@ import { z } from 'zod';
 // Re-export all financial calculation engine functions & interfaces
 export * from './calculations/financial.js';
 
+// Re-export all policy assistant schemas, corpus, and retrieval functions
+export * from './types/policy.js';
+export * from './data/syntheticPolicies.js';
+export * from './retrieval/policyRetriever.js';
+
 /**
  * Health check response schema and type
  */
@@ -61,9 +66,9 @@ export const INITIAL_MODULES = [
   {
     id: MODULE_IDS.POLICY_ASSISTANT,
     title: 'Policy Assistant',
-    description: 'Semantic vector retrieval (RAG) over credit underwriting policies and institutional compliance documents.',
-    status: 'placeholder' as const,
-    phase: 2
+    description: 'Grounded retrieval and source citation assistant over credit underwriting policies and institutional compliance documents.',
+    status: 'active' as const,
+    phase: 3
   },
   {
     id: MODULE_IDS.AGENTIC_PRESCREENING,
