@@ -1,4 +1,4 @@
-import { describe, it, expect, afterAll } from 'vitest';
+import { describe, it, expect, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import { app } from '../src/app.js';
 import { prisma } from '../src/db.js';
@@ -60,15 +60,15 @@ describe('Backend API Endpoints', () => {
   });
 
   describe('Loan Advisor API', () => {
-    it('POST /api/loan-advisor/calculate calculates standard loan quote and returns 200', async () => {
+    it('POST /api/loan-advisor/calculate calculates mortgage audit example with verified 25.43% DTI and 80.0% LTV', async () => {
       const payload = {
         principal: 400000,
         annualRate: 6.5,
         termMonths: 360,
-        grossMonthlyIncome: 12000,
+        grossMonthlyIncome: 12500,
         existingMonthlyDebt: 650,
         assetValue: 500000,
-        scenarioName: 'Test Conforming Mortgage'
+        scenarioName: 'Audit Mortgage Scenario'
       };
 
       const res = await request(app)
@@ -78,12 +78,20 @@ describe('Backend API Endpoints', () => {
       expect(res.status).toBe(200);
       expect(res.body.principal).toBe(400000);
       expect(res.body.monthlyEMI).toBe(2528.27);
-      expect(res.body.amortizationSchedule.length).toBe(360);
-      expect(res.body.amortizationSchedule[359].closingBalance).toBe(0.0);
-      expect(res.body.dti?.dtiPercentage).toBe(26.49);
-      expect(res.body.ltv?.ltvPercentage).toBe(80.0);
+      expect(res.body.totalRepayment).toBe(910179.81);
+      expect(res.body.totalInterest).toBe(510179.81);
 
-      // Validate strict schema conformance
+      // Verified DTI formula: (650 + 2528.27) / 12500 * 100 = 25.42616% => 25.43%
+      expect(res.body.dti?.dtiPercentage).toBe(25.43);
+      expect(res.body.dti?.riskTier).toBe('low_risk');
+
+      // Verified LTV formula: 400000 / 500000 * 100 = 80.0%
+      expect(res.body.ltv?.ltvPercentage).toBe(80.0);
+      expect(res.body.ltv?.tier).toBe('standard');
+
+      expect(res.body.persistenceStatus).toBe('saved');
+      expect(res.body.calculationId).toBeDefined();
+
       const parsed = LoanCalculationResponseSchema.parse(res.body);
       expect(parsed.monthlyEMI).toBe(2528.27);
     });
@@ -104,8 +112,41 @@ describe('Backend API Endpoints', () => {
       expect(res.body.monthlyEMI).toBe(500.0);
       expect(res.body.totalInterest).toBe(0.0);
       expect(res.body.totalRepayment).toBe(12000.0);
+      expect(res.body.amortizationSchedule.length).toBe(24);
+      expect(res.body.amortizationSchedule[23].closingBalance).toBe(0.0);
       expect(res.body.dti).toBeUndefined();
       expect(res.body.ltv).toBeUndefined();
+    });
+
+    it('POST /api/loan-advisor/calculate accurately handles database persistence failure gracefully without failing calculation', async () => {
+      // Temporarily mock prisma.loanCalculation.create to simulate DB connection drop or failure
+      const originalCreate = prisma.loanCalculation.create;
+      vi.spyOn(prisma.loanCalculation, 'create').mockRejectedValueOnce(
+        new Error('Simulated PostgreSQL write failure / constraint timeout')
+      );
+
+      const payload = {
+        principal: 50000,
+        annualRate: 5.0,
+        termMonths: 60,
+        scenarioName: 'DB Failure Resilience Test'
+      };
+
+      const res = await request(app)
+        .post('/api/loan-advisor/calculate')
+        .send(payload);
+
+      // Calculation should succeed with HTTP 200
+      expect(res.status).toBe(200);
+      expect(res.body.principal).toBe(50000);
+      expect(res.body.monthlyEMI).toBe(943.56);
+
+      // Persistence status must explicitly report 'failed' and calculationId must be undefined
+      expect(res.body.persistenceStatus).toBe('failed');
+      expect(res.body.calculationId).toBeUndefined();
+
+      // Restore mock
+      vi.restoreAllMocks();
     });
 
     it('POST /api/loan-advisor/calculate rejects invalid negative or missing payload with 400', async () => {

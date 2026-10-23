@@ -107,6 +107,7 @@ export const AmortizationRowSchema = z.object({
  */
 export const LoanCalculationResponseSchema = z.object({
   calculationId: z.string().optional(),
+  persistenceStatus: z.enum(['saved', 'failed', 'disabled']).default('saved'),
   principal: z.number(),
   annualRate: z.number(),
   termMonths: z.number(),

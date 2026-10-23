@@ -28,31 +28,37 @@ loanAdvisorRouter.post('/calculate', async (req: Request, res: Response, next: N
 
     let calculationId: string | undefined;
     let savedAt: string | undefined;
+    let persistenceStatus: 'saved' | 'failed' | 'disabled' = 'disabled';
 
     // Persist calculation record asynchronously to PostgreSQL if available
-    try {
-      const savedRecord = await prisma.loanCalculation.create({
-        data: {
-          borrowerId: validatedInput.borrowerId || null,
-          principal: quoteResult.principal,
-          annualRate: quoteResult.annualRate,
-          termMonths: quoteResult.termMonths,
-          monthlyEMI: quoteResult.monthlyEMI,
-          totalRepayment: quoteResult.totalRepayment,
-          totalInterest: quoteResult.totalInterest,
-          dtiRatio: quoteResult.dti?.dtiPercentage || null,
-          ltvRatio: quoteResult.ltv?.ltvPercentage || null,
-          scenarioName: validatedInput.scenarioName || 'Custom Calculator Scenario'
-        }
-      });
-      calculationId = savedRecord.id;
-      savedAt = savedRecord.createdAt.toISOString();
-    } catch (dbError) {
-      console.warn('[LoanAdvisor] Database persistence skipped or unavailable:', dbError instanceof Error ? dbError.message : dbError);
+    if (process.env['DATABASE_URL']) {
+      try {
+        const savedRecord = await prisma.loanCalculation.create({
+          data: {
+            borrowerId: validatedInput.borrowerId || null,
+            principal: quoteResult.principal,
+            annualRate: quoteResult.annualRate,
+            termMonths: quoteResult.termMonths,
+            monthlyEMI: quoteResult.monthlyEMI,
+            totalRepayment: quoteResult.totalRepayment,
+            totalInterest: quoteResult.totalInterest,
+            dtiRatio: quoteResult.dti?.dtiPercentage || null,
+            ltvRatio: quoteResult.ltv?.ltvPercentage || null,
+            scenarioName: validatedInput.scenarioName || 'Custom Calculator Scenario'
+          }
+        });
+        calculationId = savedRecord.id;
+        savedAt = savedRecord.createdAt.toISOString();
+        persistenceStatus = 'saved';
+      } catch (dbError) {
+        console.warn('[LoanAdvisor] Database persistence failed:', dbError instanceof Error ? dbError.message : dbError);
+        persistenceStatus = 'failed';
+      }
     }
 
     const response: LoanCalculationResponse = {
       calculationId,
+      persistenceStatus,
       principal: quoteResult.principal,
       annualRate: quoteResult.annualRate,
       termMonths: quoteResult.termMonths,

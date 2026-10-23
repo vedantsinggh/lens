@@ -180,13 +180,19 @@ export function LoanAdvisor() {
         </div>
 
         {/* Database Sync Status Badge */}
-        {result?.calculationId && (
+        {result?.persistenceStatus === 'saved' && result.calculationId && (
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-400">
             <Database className="w-3.5 h-3.5 text-sky-400" />
             <span>Persisted to PostgreSQL</span>
             <span className="text-[10px] font-mono text-slate-500 truncate max-w-[100px]" title={result.calculationId}>
               {result.calculationId.slice(0, 8)}...
             </span>
+          </div>
+        )}
+        {result?.persistenceStatus === 'failed' && (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-400">
+            <AlertCircle className="w-3.5 h-3.5" />
+            <span>Calculation Valid &bull; DB Persistence Unconfirmed</span>
           </div>
         )}
       </div>
@@ -503,46 +509,51 @@ export function LoanAdvisor() {
 
               {/* Underwriting Indicators (DTI & LTV) */}
               {(result.dti || result.ltv) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {result.dti && (
-                    <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-400">Debt-to-Income (DTI)</span>
-                        <span
-                          className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
-                            result.dti.riskTier === 'low_risk'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                              : result.dti.riskTier === 'moderate_risk'
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                              : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                          }`}
-                        >
-                          {result.dti.dtiPercentage}% &bull; {result.dti.riskTier.replace('_', ' ').toUpperCase()}
-                        </span>
+                <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {result.dti && (
+                      <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-400">Debt-to-Income (DTI)</span>
+                          <span
+                            className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                              result.dti.riskTier === 'low_risk'
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                : result.dti.riskTier === 'moderate_risk'
+                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                                : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                            }`}
+                          >
+                            {result.dti.dtiPercentage}% &bull; {result.dti.riskTier.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 leading-relaxed">{result.dti.description}</p>
                       </div>
-                      <p className="text-xs text-slate-400 leading-relaxed">{result.dti.description}</p>
-                    </div>
-                  )}
+                    )}
 
-                  {result.ltv && (
-                    <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-slate-400">Loan-to-Value (LTV)</span>
-                        <span
-                          className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
-                            result.ltv.tier === 'standard'
-                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                              : result.ltv.tier === 'elevated_pmi_required'
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
-                              : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
-                          }`}
-                        >
-                          {result.ltv.ltvPercentage}% &bull; {result.ltv.tier.replace(/_/g, ' ').toUpperCase()}
-                        </span>
+                    {result.ltv && (
+                      <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-slate-400">Loan-to-Value (LTV)</span>
+                          <span
+                            className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                              result.ltv.tier === 'standard'
+                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                                : result.ltv.tier === 'elevated_pmi_required'
+                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                                : 'bg-rose-500/10 text-rose-400 border-rose-500/30'
+                            }`}
+                          >
+                            {result.ltv.ltvPercentage}% &bull; {result.ltv.tier.replace(/_/g, ' ').toUpperCase()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 leading-relaxed">{result.ltv.description}</p>
                       </div>
-                      <p className="text-xs text-slate-400 leading-relaxed">{result.ltv.description}</p>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 italic px-1">
+                    * Note: DTI and LTV risk tiers are illustrative demo guidelines only and do not represent universal lending, legal, or regulatory standards.
+                  </p>
                 </div>
               )}
 

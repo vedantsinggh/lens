@@ -3,12 +3,22 @@
  *
  * Implements bank-grade, deterministic loan calculation formulas:
  * - Equated Monthly Installment (EMI) using standard actuarial reduction
- * - Zero-interest promotional loan handling (linear division, no division-by-zero)
+ * - Zero-interest promotional loan handling (linear division, zero division-by-zero)
  * - Monthly Amortization Schedule with zero penny-leakage reconciliation
- * - Debt-to-Income (DTI) ratio and underwriting risk tier evaluation
- * - Loan-to-Value (LTV) ratio and collateral threshold evaluation
+ * - Debt-to-Income (DTI) ratio with illustrative demo risk tier evaluation
+ * - Loan-to-Value (LTV) ratio with illustrative demo collateral tier evaluation
  *
  * All functions are purely deterministic and free from non-deterministic AI alterations.
+ *
+ * Rounding Policy:
+ * 1. Financial values are rounded using standard half-up rounding to two decimal places (cents/pence).
+ * 2. In amortization schedules, the final monthly payment absorbs any cumulative penny differences
+ *    such that total principal repaid equals the original principal exactly and the final closing
+ *    balance reaches exactly 0.00.
+ * 3. Total repayment is mathematically identical to the sum of all scheduled actual payments:
+ *    totalRepayment = sum(schedule[i].payment).
+ * 4. Total interest is mathematically identical to total repayment minus initial principal:
+ *    totalInterestPaid = totalRepayment - totalPrincipalRepaid.
  */
 
 export interface AmortizationRow {
@@ -100,9 +110,11 @@ export function calculateEMI(principal: number, annualRate: number, termMonths: 
 
 /**
  * Generates a full monthly amortization schedule with exact penny-reconciliation.
- * The final month adjusts for any fractional penny rounding differences so that
- * the total principal repaid matches the original principal exactly, and the
- * final closing balance is precisely 0.00.
+ * The final month adjusts for any fractional penny rounding differences so that:
+ * 1. Total principal repaid matches the original principal exactly.
+ * 2. Final closing balance is precisely 0.00.
+ * 3. Total repayment strictly equals the sum of all actual scheduled payments.
+ * 4. Total interest strictly equals total repayment minus principal.
  */
 export function calculateAmortizationSchedule(
   principal: number,
@@ -116,7 +128,6 @@ export function calculateAmortizationSchedule(
 
   const schedule: AmortizationRow[] = [];
   let currentBalance = roundCurrency(principal);
-  let totalInterestAccumulator = 0;
   let totalPrincipalAccumulator = 0;
 
   for (let month = 1; month <= termMonths; month++) {
@@ -134,7 +145,6 @@ export function calculateAmortizationSchedule(
       closingBalance = 0;
     } else {
       principalPaid = roundCurrency(baseEmi - interest);
-      // Guard against potential edge cases where interest equals or exceeds EMI
       if (principalPaid <= 0) {
         principalPaid = 0.01;
       }
@@ -146,7 +156,6 @@ export function calculateAmortizationSchedule(
     }
 
     currentBalance = closingBalance;
-    totalInterestAccumulator = roundCurrency(totalInterestAccumulator + interest);
     totalPrincipalAccumulator = roundCurrency(totalPrincipalAccumulator + principalPaid);
 
     schedule.push({
@@ -159,22 +168,24 @@ export function calculateAmortizationSchedule(
     });
   }
 
-  const totalRepayment = roundCurrency(totalPrincipalAccumulator + totalInterestAccumulator);
+  const totalPrincipalRepaid = roundCurrency(totalPrincipalAccumulator);
+  const totalRepayment = roundCurrency(schedule.reduce((acc, row) => acc + row.payment, 0));
+  const totalInterestPaid = roundCurrency(totalRepayment - totalPrincipalRepaid);
 
   return {
     schedule,
-    totalPrincipalRepaid: totalPrincipalAccumulator,
-    totalInterestPaid: totalInterestAccumulator,
+    totalPrincipalRepaid,
+    totalInterestPaid,
     totalRepayment
   };
 }
 
 /**
- * Computes Debt-to-Income (DTI) ratio and evaluates credit risk tier.
- * Standard guidelines:
- * - <= 36%: Prime / Low Risk (Qualifies for most standard and conforming programs)
- * - 36.01% - 43%: Moderate Risk (Typical conforming loan ceiling)
- * - > 43%: High Risk (Requires manual underwriting or compensating factors)
+ * Computes Debt-to-Income (DTI) ratio.
+ * Formula: (totalMonthlyDebt / grossMonthlyIncome) * 100
+ *
+ * NOTE: Risk tiers are illustrative demo guidelines only and do not represent
+ * universal lending, legal, or regulatory standards.
  */
 export function calculateDTI(totalMonthlyDebt: number, grossMonthlyIncome: number): DTIEvaluation {
   if (!Number.isFinite(grossMonthlyIncome) || grossMonthlyIncome <= 0) {
@@ -191,13 +202,13 @@ export function calculateDTI(totalMonthlyDebt: number, grossMonthlyIncome: numbe
 
   if (dtiPercentage <= 36) {
     riskTier = 'low_risk';
-    description = 'Prime DTI (<= 36%): Excellent capacity for repayment under institutional guidelines.';
+    description = 'Illustrative Demo Guideline (<= 36%): Healthy debt-to-income benchmark in standard credit models.';
   } else if (dtiPercentage <= 43) {
     riskTier = 'moderate_risk';
-    description = 'Moderate DTI (36.01% - 43%): Conforming boundary. Additional reserves or compensating assets advised.';
+    description = 'Illustrative Demo Guideline (36.01% - 43%): Conforming boundary. Additional reserves or compensating factors may apply.';
   } else {
     riskTier = 'high_risk';
-    description = 'Elevated DTI (> 43%): High debt burden exceeds typical standard guidelines.';
+    description = 'Illustrative Demo Guideline (> 43%): Elevated debt burden exceeding typical standard benchmarks.';
   }
 
   return {
@@ -208,11 +219,11 @@ export function calculateDTI(totalMonthlyDebt: number, grossMonthlyIncome: numbe
 }
 
 /**
- * Computes Loan-to-Value (LTV) ratio and collateral coverage tier.
- * Standard guidelines:
- * - <= 80%: Standard Collateral (No Private Mortgage Insurance / Extra Collateral Required)
- * - 80.01% - 95%: Elevated Risk (Mortgage Insurance or secondary guarantee required)
- * - > 95%: High Collateral Risk (Substantial secondary coverage required)
+ * Computes Loan-to-Value (LTV) ratio.
+ * Formula: (loanAmount / assetValue) * 100
+ *
+ * NOTE: Collateral tiers are illustrative demo guidelines only and do not represent
+ * universal lending, legal, or regulatory standards.
  */
 export function calculateLTV(loanAmount: number, assetValue: number): LTVEvaluation {
   if (!Number.isFinite(assetValue) || assetValue <= 0) {
@@ -229,13 +240,13 @@ export function calculateLTV(loanAmount: number, assetValue: number): LTVEvaluat
 
   if (ltvPercentage <= 80) {
     tier = 'standard';
-    description = 'Standard LTV (<= 80%): Sufficient equity cushion. No private mortgage insurance required.';
+    description = 'Illustrative Demo Guideline (<= 80%): Standard equity cushion. Frequently exempt from private mortgage insurance.';
   } else if (ltvPercentage <= 95) {
     tier = 'elevated_pmi_required';
-    description = 'Elevated LTV (80.01% - 95%): Lower equity cushion. Mortgage insurance (PMI) typically mandated.';
+    description = 'Illustrative Demo Guideline (80.01% - 95%): Lower equity cushion. Mortgage insurance (PMI) commonly evaluated in conventional programs.';
   } else {
     tier = 'critical_risk';
-    description = 'Critical LTV (> 95%): Highly leveraged collateral. Strict secondary approval required.';
+    description = 'Illustrative Demo Guideline (> 95%): High collateral leverage. Typically requires specialized underwriting or extra credit enhancement.';
   }
 
   return {
@@ -265,6 +276,7 @@ export function calculateLoanQuote(params: {
 
   let dti: DTIEvaluation | undefined;
   if (grossMonthlyIncome !== undefined && grossMonthlyIncome > 0) {
+    // Formula: (existingMonthlyDebt + proposedEMI) / grossMonthlyIncome * 100
     const totalDebt = (existingMonthlyDebt || 0) + baseEmi;
     dti = calculateDTI(totalDebt, grossMonthlyIncome);
   }
